@@ -1,6 +1,6 @@
 import * as THREE from '../../build/three.module.js';
-import { PathTracingFS } from '../shader/PathTracingFS.js';
 import { PathTracingVS } from '../shader/PathTracingVS.js';
+import { Shader } from '../shader/Shader.js';
 
 class PathTracing {
 	constructor(viewer) {
@@ -10,7 +10,7 @@ class PathTracing {
 
 		this.scene = new THREE.Scene();
 
-		this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 100);
+		this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 100000);
 		this.camera.position.set(2, -5, 40);
 		this.camera.rotation.x = 0.005;
 
@@ -78,7 +78,7 @@ class PathTracing {
 				uShortBoxInvMatrix: { value: new THREE.Matrix4() }
 			},
 			vertexShader: PathTracingVS,
-			fragmentShader: PathTracingFS,
+			fragmentShader: Shader.PathTracingFS,
 			depthTest: false,
 			depthWrite: false
 		});

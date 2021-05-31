@@ -3,7 +3,7 @@ import { defined } from './js/defined.js';
 import { GUI } from './../libs/jsm/libs/dat.gui.module.js';
 import { Viewer } from './js/Viewer.js';
 import { Utils } from './js/Utils.js';
-import { PathTracing } from './js/PathTracing.js';
+import { Shader } from './shader/Shader.js';
 
 function main() {
 	let camera, pathTracingScene, renderer, object;
@@ -17,8 +17,11 @@ function main() {
 	//用于进行路径追踪的mesh
 	let pathTracingMesh = undefined;
 
-	init();
-	animate();
+	new THREE.FileLoader().load('./shader/PathTracingFS.glsl', PathTracingFS => {
+		Shader.PathTracingFS = PathTracingFS;
+		init();
+		animate();
+	});
 
 	function init() {
 		clock = new THREE.Clock();
