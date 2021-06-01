@@ -154,16 +154,41 @@ Sphere spheres[N_SPHERES];
 
 void InitSceneMesh(void){
     
-    // //自发光颜色
-    vec3 emi=vec3(0.);
+    // // //自发光颜色
+    // vec3 emi=vec3(0.);
     
-    spheres[0]=Sphere(
-        vec3(213.,213.,-332.),
-        100.,
-        emi,
-        vec3(.7,.7,.7),
-        DIFF
-    );
+    // spheres[0]=Sphere(
+        //     vec3(213.,213.,-332.),
+        //     100.,
+        //     emi,
+        //     vec3(.7,.7,.7),
+        //     DIFF
+    // );
+    
+    // vec3 z=vec3(0);// No color value, Black
+    // vec3 L1=vec3(1.,.7,.38)*30.;// Bright Yellowish light
+    
+    // quads[0]=Quad(
+        //     //法线
+        //     vec3(0.,0.,1.),
+        //     //面的四个点
+        //     vec3(0.,0.,-559.2),
+        //     vec3(549.6,0.,-559.2),
+        //     vec3(549.6,548.8,-559.2),
+        //     vec3(0.,548.8,-559.2),
+        //     //自发光颜色
+        //     z,
+        //     //材质本身颜色
+        //     vec3(1),
+        //     //对象类型
+        //     DIFF
+    // );// Back Wall
+    // quads[1]=Quad(vec3(1.,0.,0.),vec3(0.,0.,0.),vec3(0.,0.,-559.2),vec3(0.,548.8,-559.2),vec3(0.,548.8,0.),z,vec3(.7,.12,.05),DIFF);// Left Wall Red
+    // quads[2]=Quad(vec3(-1.,0.,0.),vec3(549.6,0.,-559.2),vec3(549.6,0.,0.),vec3(549.6,548.8,0.),vec3(549.6,548.8,-559.2),z,vec3(.2,.4,.36),DIFF);// Right Wall Green
+    // quads[3]=Quad(vec3(0.,-1.,0.),vec3(0.,548.8,-559.2),vec3(549.6,548.8,-559.2),vec3(549.6,548.8,0.),vec3(0.,548.8,0.),z,vec3(1),DIFF);// Ceiling
+    // quads[4]=Quad(vec3(0.,1.,0.),vec3(0.,0.,0.),vec3(549.6,0.,0.),vec3(549.6,0.,-559.2),vec3(0.,0.,-559.2),z,vec3(1),DIFF);// Floor
+    
+    // quads[5]=Quad(vec3(0.,-1.,0.),vec3(213.,548.,-332.),vec3(343.,548.,-332.),vec3(343.,548.,-227.),vec3(213.,548.,-227.),L1,z,LIGHT);// Area Light Rectangle in ceiling
     
     vec3 z=vec3(0);// No color value, Black
     vec3 L1=vec3(1.,.7,.38)*30.;// Bright Yellowish light
@@ -189,6 +214,7 @@ void InitSceneMesh(void){
     quads[4]=Quad(vec3(0.,1.,0.),vec3(0.,0.,0.),vec3(549.6,0.,0.),vec3(549.6,0.,-559.2),vec3(0.,0.,-559.2),z,vec3(1),DIFF);// Floor
     
     quads[5]=Quad(vec3(0.,-1.,0.),vec3(213.,548.,-332.),vec3(343.,548.,-332.),vec3(343.,548.,-227.),vec3(213.,548.,-227.),L1,z,LIGHT);// Area Light Rectangle in ceiling
+    
 }
 
 //平面光源采样
@@ -260,24 +286,23 @@ float TriangleIntersect(vec3 v0,vec3 v1,vec3 v2,Ray r,bool isDoubleSided)
 }
 
 //平面求交
-float QuadIntersect(vec3 v0,vec3 v1,vec3 v2,vec3 v3,Ray r,bool isDoubleSided){
+float QuadIntersect(vec3 v0,vec3 v1,vec3 v2,vec3 v3,Ray r,bool isDoubleSided)
+//----------------------------------------------------------------------------------
+{
     return min(TriangleIntersect(v0,v1,v2,r,isDoubleSided),TriangleIntersect(v0,v2,v3,r,isDoubleSided));
 }
 
 float RayIntersect(Ray r,inout Intersection intersec){
     vec3 normal;
-    //距离
     float d;
-    //默认的相交距离
     float t=INFINITY;
     bool isRayExiting=false;//光线是否停止
     
-    // d=QuadIntersect(quads[0].v0,quads[0].v1,quads[0].v2,quads[0].v3,r,false);
-    
+    //计算光线与房间和顶部面光源的相交
     for(int i=0;i<N_QUADS;i++){
+        //循环遍历每个四边形面，计算是否相交
         d=QuadIntersect(quads[i].v0,quads[i].v1,quads[i].v2,quads[i].v3,r,false);
-        
-        //找出相交距离最短的那个，即最近的那个
+        //如果相交了
         if(d<t){
             t=d;
             intersec.normal=normalize(quads[i].normal);
@@ -285,19 +310,19 @@ float RayIntersect(Ray r,inout Intersection intersec){
             intersec.color=quads[i].color;
             intersec.type=quads[i].type;
         }
-    };
+    }
     
     //与球体进行相交
     
-    d=SphereIntersect(spheres[0].radius,spheres[0].center,r);
+    // d=SphereIntersect(spheres[0].radius,spheres[0].center,r);
     
-    if(d<t){
-        t=d;
-        intersec.normal=normalize((r.origin+r.direction*t)-spheres[0].center);
-        intersec.emission=spheres[0].emission;
-        intersec.color=spheres[0].color;
-        intersec.type=spheres[0].type;
-    }
+    // if(d<t){
+        //     t=d;
+        //     intersec.normal=normalize((r.origin+r.direction*t)-spheres[0].center);
+        //     intersec.emission=spheres[0].emission;
+        //     intersec.color=spheres[0].color;
+        //     intersec.type=spheres[0].type;
+    // }
     
     return t;
     
@@ -359,85 +384,9 @@ vec3 CalculateRadiance(inout RayPayload payload){
         if(t==INFINITY)
         break;
         
-        //如果相交的对象是灯光，则结束此次弹射
-        if(intersec.type==LIGHT){
-            // if(bounceIsSpecular||sampleLight||createCausticRay)
-            accumCol=mask*intersec.emission;
-            
-            break;
-        }
+        accumCol=intersec.color;
         
-        // if we get here and sampleLight is still true, shadow ray failed to find a light source
-        //如果光线经过几次弹射之后依然无法击中光源，则结束此次弹射
-        if(sampleLight)
-        break;
-        
-        // useful data  法线归一化
-        n=normalize(intersec.normal);
-        nl=dot(n,r.direction)<0.?normalize(n):normalize(-n);
-        //这里计算相交的那个点，这个点为下次弹射的起点
-        x=r.origin+r.direction*t;
-        
-        //这里材质如果是漫反射
-        if(intersec.type==DIFF)// Ideal DIFFUSE reflection
-        {
-            diffuseCount++;
-            //当前弹射到的颜色迭代相加
-            mask*=intersec.color;
-            
-            // if(createCausticRay)
-            // break;
-            
-            // create caustic ray
-            //第一次漫反射
-            // if(diffuseCount==1&&rand()<.25&&uSampleCounter>20.)
-            // {
-                //     createCausticRay=true;
-                
-                //     vec3 randVec=vec3(rand()*2.-1.,rand()*2.-1.,rand()*2.-1.);
-                //     vec3 offset=vec3(randVec.x*82.,randVec.y*170.,randVec.z*80.);
-                //     vec3 target=vec3(180.+offset.x,170.+offset.y,-350.+offset.z);
-                //     r=Ray(x,normalize(target-x));
-                //     r.origin+=nl*uEPS_intersect;
-                
-                //     weight=max(0.,dot(nl,r.direction));
-                //     mask*=weight;
-                
-                //     continue;
-            // }
-            
-            // bounceIsSpecular=false;
-            
-            if(diffuseCount==1&&rand()<.5)
-            {
-                //这里在半球面内随机采样，用于计算下一次光线的投射方向
-                r=Ray(x,randomCosWeightedDirectionInHemisphere(nl));
-                r.origin+=nl*uEPS_intersect;
-                continue;
-            }
-            
-            dirToLight=sampleQuadLight(x,nl,light,weight);
-            mask*=weight;
-            
-            r=Ray(x,dirToLight);
-            r.origin+=nl*uEPS_intersect;
-            // sampleLight=true;
-            continue;
-            
-        }// end if (intersec.type == DIFF)
-        
-        // //镜面反射
-        // if(intersec.type==SPEC)// Ideal SPECULAR reflection
-        // {
-            //     mask*=intersec.color;
-            
-            //     r=Ray(x,reflect(r.direction,nl));
-            //     r.origin+=nl*uEPS_intersect;
-            
-            //     continue;
-        // }
-        
-    }// end for (int bounces = 0; bounces < 5; bounces++)
+    }
     
     return max(vec3(0),accumCol);
     

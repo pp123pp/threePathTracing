@@ -11,8 +11,12 @@ class PathTracing {
 		this.scene = new THREE.Scene();
 
 		this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 100000);
-		this.camera.position.set(2, -5, 40);
-		this.camera.rotation.x = 0.005;
+		this.camera.position.set(339.96335373276185, 340.7090310896009, 1076.3447713443002);
+		this.camera.rotation.y = Math.PI / 2;
+		this.camera.updateMatrixWorld();
+		this.camera.updateProjectionMatrix();
+
+		// this.camera.matrixWorld.set(0.9978401783785731, 0, 0.0656884952896425, 0, 0.00690197894356194, 0.9944646857502798, -0.10484441559882904, 0, -0.06532488882562305, 0.10507135097445619, 0.9923168194202509, 0, 169.66907788683616, 331.850032333594, 789.9649262960564);
 
 		this.pathTracingMesh = undefined;
 		//用于输出这一帧路径追踪的结果
