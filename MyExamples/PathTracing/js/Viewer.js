@@ -1,5 +1,5 @@
-import * as THREE from '../../build/three.module.js';
-import Stats from './../../libs/jsm/libs/stats.module.js';
+import * as THREE from '../../../build/three.module.js';
+import Stats from './../../../libs/jsm/libs/stats.module.js';
 import { PathTracing } from './PathTracing.js';
 import { ScreenCopy } from './ScreenCopy.js';
 import { ScreenOutput } from './ScreenOutput.js';

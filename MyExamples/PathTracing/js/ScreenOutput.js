@@ -1,4 +1,4 @@
-import { Mesh, MeshBasicMaterial, OrthographicCamera, PlaneBufferGeometry, Scene, ShaderMaterial } from '../../build/three.module.js';
+import { Mesh, MeshBasicMaterial, OrthographicCamera, PlaneBufferGeometry, Scene, ShaderMaterial } from '../../../build/three.module.js';
 import { PathTracingVS } from '../shader/PathTracingVS.js';
 import { ScreenOutputFS } from '../shader/ScreenOutputFS.js';
 

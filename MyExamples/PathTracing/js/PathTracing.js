@@ -1,4 +1,4 @@
-import * as THREE from '../../build/three.module.js';
+import * as THREE from '../../../build/three.module.js';
 import { PathTracingVS } from '../shader/PathTracingVS.js';
 import { Shader } from '../shader/Shader.js';
 
@@ -10,9 +10,9 @@ class PathTracing {
 
 		this.scene = new THREE.Scene();
 
-		this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 100000);
-		this.camera.position.set(339.96335373276185, 340.7090310896009, 1076.3447713443002);
-		this.camera.rotation.y = Math.PI / 2;
+		this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 100000);
+		this.camera.position.set(278, 270, 1050);
+		// this.camera.rotation.y = Math.PI / 2;
 		this.camera.updateMatrixWorld();
 		this.camera.updateProjectionMatrix();
 
@@ -49,6 +49,14 @@ class PathTracing {
 		let uVLen = Math.tan(fovScale);
 		let uULen = uVLen * camera.aspect;
 
+		let blueNoiseTexture = new THREE.TextureLoader().load('./textures/BlueNoise_RGBA256.png');
+		blueNoiseTexture.wrapS = THREE.RepeatWrapping;
+		blueNoiseTexture.wrapT = THREE.RepeatWrapping;
+		blueNoiseTexture.flipY = false;
+		blueNoiseTexture.minFilter = THREE.NearestFilter;
+		blueNoiseTexture.magFilter = THREE.NearestFilter;
+		blueNoiseTexture.generateMipmaps = false;
+
 		//同样构造一个2 * 2 的plane，用于铺满屏幕
 		let pathTracingScreenPlaneGeometry = new THREE.PlaneGeometry(2, 2);
 		let pathTracingScreenPlaneMaterial = new THREE.ShaderMaterial({
@@ -56,7 +64,7 @@ class PathTracing {
 				//上一帧的渲染结果
 				tPreviousTexture: { value: undefined },
 
-				tBlueNoiseTexture: { value: new THREE.TextureLoader().load('./textures/BlueNoise_RGBA256.png') },
+				tBlueNoiseTexture: { value: blueNoiseTexture },
 				//采样次数
 				uSampleCounter: { type: 'f', value: 0.0 },
 				//帧计数

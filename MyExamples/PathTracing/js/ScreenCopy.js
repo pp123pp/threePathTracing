@@ -1,4 +1,4 @@
-import * as THREE from '../../build/three.module.js';
+import * as THREE from '../../../build/three.module.js';
 import { PathTracingVS } from '../shader/PathTracingVS.js';
 import { ScreenCopyFS } from '../shader/ScreenCopyFS.js';
 

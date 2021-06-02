@@ -1,6 +1,6 @@
-import * as THREE from '../build/three.module.js';
+import * as THREE from '../../build/three.module.js';
 import { defined } from './js/defined.js';
-import { GUI } from './../libs/jsm/libs/dat.gui.module.js';
+import { GUI } from './../../libs/jsm/libs/dat.gui.module.js';
 import { Viewer } from './js/Viewer.js';
 import { Utils } from './js/Utils.js';
 import { Shader } from './shader/Shader.js';

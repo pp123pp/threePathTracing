@@ -1,6 +1,6 @@
-import * as THREE from '../../build/three.module.js';
+import * as THREE from '../../../build/three.module.js';
 
-import { OrbitControls } from '../../libs/jsm/controls/OrbitControls.js';
+import { OrbitControls } from '../../../libs/jsm/controls/OrbitControls.js';
 
 let Utils = {
 	createDirLight() {
