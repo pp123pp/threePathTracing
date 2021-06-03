@@ -70,9 +70,15 @@ class PathTracing {
 				//帧计数
 				uFrameCounter: { type: 'f', value: 1.0 },
 
+				uNearFar: { value: new THREE.Vector2() },
+
 				//相机矩阵，用于计算射线
 				uCameraMatrix: { value: new THREE.Matrix4() },
 
+				//相机view的逆矩阵
+				uViewInverse: { value: new THREE.Matrix4() },
+				//逆投影矩阵
+				uProjectionInverse: { value: new THREE.Matrix4() },
 				//分辨率
 				uResolution: { value: new THREE.Vector2(context.drawingBufferWidth, context.drawingBufferHeight) },
 
@@ -151,8 +157,12 @@ class PathTracing {
 		uniforms.uFrameCounter.value = viewer.frameCounter;
 		uniforms.uRandomVec2.value.set(Math.random(), Math.random());
 
-		this.camera.updateMatrixWorld(true);
-		uniforms.uCameraMatrix.value.copy(this.camera.matrixWorld);
+		let camera = this.camera;
+		camera.updateMatrixWorld(true);
+		uniforms.uNearFar.value.set(camera.near, camera.far);
+		uniforms.uCameraMatrix.value.copy(camera.matrixWorld);
+		uniforms.uViewInverse.value.copy(camera.matrixWorldInverse.invert());
+		uniforms.uProjectionInverse.value.copy(camera.projectionMatrix.invert());
 	}
 }
 

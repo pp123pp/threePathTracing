@@ -14,8 +14,14 @@ uniform float uVLen;
 uniform vec2 uResolution;
 uniform vec2 uRandomVec2;
 
+//相机的近远裁剪面
+uniform vec2 uNearFar;
+
 //相机矩阵
 uniform mat4 uCameraMatrix;
+
+uniform mat4 uViewInverse;
+uniform mat4 uProjectionInverse;
 
 uniform sampler2D tPreviousTexture;
 uniform sampler2D tBlueNoiseTexture;
@@ -37,6 +43,8 @@ uniform sampler2D tBlueNoiseTexture;
 struct Ray{
     vec3 origin;
     vec3 direction;
+    float tMin;
+    float tMax;
 };
 
 struct Sphere{
@@ -83,6 +91,7 @@ struct RayPayload{
     vec3 throughput;
     int seed;
     vec3 worldHitPoint;
+    bool isRayBounceFromSpecularReflectionMaterial;
 };
 
 //用于生成随机数的种子
@@ -128,20 +137,6 @@ int tea(int val0,int val1){
     }
     
     return v0;
-}
-
-//半球面内随机采样
-vec3 randomCosWeightedDirectionInHemisphere(vec3 nl)
-{
-    float r=sqrt(rand());// cos-weighted distribution in hemisphere
-    float phi=rand()*TWO_PI;
-    float x=r*cos(phi);
-    float y=r*sin(phi);
-    float z=sqrt(1.-x*x-y*y);
-    
-    vec3 U=normalize(cross(vec3(.7071067811865475,.7071067811865475,0),nl));
-    vec3 V=cross(nl,U);
-    return normalize(x*U+y*V+z*nl);
 }
 
 // tentFilter from Peter Shirley's 'Realistic Ray Tracing (2nd Edition)' book, pg. 60
@@ -192,31 +187,6 @@ void InitSceneMesh(void){
     quads[5]=Quad(vec3(0.,-1.,0.),vec3(213.,548.,-332.),vec3(343.,548.,-332.),vec3(343.,548.,-227.),vec3(213.,548.,-227.),L1,z,LIGHT);// Area Light Rectangle in ceiling
 }
 
-//平面光源采样
-vec3 sampleQuadLight(vec3 x,vec3 nl,Quad light,out float weight){
-    vec3 randPointOnLight;
-    
-    //在光源平面上随机选取一点
-    randPointOnLight.x=mix(light.v0.x,light.v1.x,clamp(rand(),.1,.9));
-    //由于是平面，所以高度不变
-    randPointOnLight.y=light.v0.y;
-    randPointOnLight.z=mix(light.v0.z,light.v3.z,clamp(rand(),.1,.9));
-    
-    //光线起点到光源的射线
-    vec3 dirToLight=randPointOnLight-x;
-    
-    //长 * 宽 这里计算面积
-    float r2=distance(light.v0,light.v1)*distance(light.v0,light.v3);
-    
-    float d2=dot(dirToLight,dirToLight);
-    float cos_a_max=sqrt(1.-clamp(r2/d2,0.,1.));
-    dirToLight=normalize(dirToLight);
-    float dotNlRayDir=max(0.,dot(nl,dirToLight));
-    weight=2.*(1.-cos_a_max)*max(0.,-dot(dirToLight,light.normal))*dotNlRayDir;
-    weight=clamp(weight,0.,1.);
-    return dirToLight;
-}
-
 //执行相交测试
 // optimized algorithm for solving quadratic equations developed by Dr. Po-Shen Loh -> https://youtu.be/XKBX0r3J-9Y
 // Adapted to root finding (ray t0/t1) for all quadric shapes (sphere, ellipsoid, cylinder, cone, etc.) by Erich Loftis
@@ -265,7 +235,7 @@ float QuadIntersect(vec3 v0,vec3 v1,vec3 v2,vec3 v3,Ray r,bool isDoubleSided){
     return min(TriangleIntersect(v0,v1,v2,r,isDoubleSided),TriangleIntersect(v0,v2,v3,r,isDoubleSided));
 }
 
-float RayIntersect(Ray r,inout Intersection intersec){
+float RayIntersect(Ray r,inout Intersection intersect){
     vec3 normal;
     //距离
     float d;
@@ -281,10 +251,10 @@ float RayIntersect(Ray r,inout Intersection intersec){
         //找出相交距离最短的那个，即最近的那个
         if(d<t){
             t=d;
-            intersec.normal=normalize(quads[i].normal);
-            intersec.emission=quads[i].emission;
-            intersec.color=quads[i].color;
-            intersec.type=quads[i].type;
+            intersect.normal=normalize(quads[i].normal);
+            intersect.emission=quads[i].emission;
+            intersect.color=quads[i].color;
+            intersect.type=quads[i].type;
         }
     };
     
@@ -294,17 +264,35 @@ float RayIntersect(Ray r,inout Intersection intersec){
     
     if(d<t){
         t=d;
-        intersec.normal=normalize((r.origin+r.direction*t)-spheres[0].center);
-        intersec.emission=spheres[0].emission;
-        intersec.color=spheres[0].color;
-        intersec.type=spheres[0].type;
+        intersect.normal=normalize((r.origin+r.direction*t)-spheres[0].center);
+        intersect.emission=spheres[0].emission;
+        intersect.color=spheres[0].color;
+        intersect.type=spheres[0].type;
     }
     
     return t;
     
 }
 
-vec3 CalculateRadiance(inout RayPayload payload){
+bool _traceRay(in Ray ray,inout RayPayload payload,in bool isCameraRay){
+    
+    float t;
+    
+    //定义相交结构体
+    Intersection intersect;
+    
+    //场景相交测试
+    t=RayIntersect(ray,intersect);
+    
+    return t==INFINITY;
+}
+
+void main(void){
+    
+    ivec2 ipos=ivec2(gl_FragCoord.xy);
+    
+    //每个像素采样5次
+    int sampleCountPerPixel=4;
     
     //相机的右方向
     vec3 camRight=vec3(uCameraMatrix[0][0],uCameraMatrix[0][1],uCameraMatrix[0][2]);
@@ -313,71 +301,6 @@ vec3 CalculateRadiance(inout RayPayload payload){
     //相机的视线方向
     vec3 camForward=vec3(-uCameraMatrix[2][0],-uCameraMatrix[2][1],-uCameraMatrix[2][2]);
     
-    seed=uvec2(uFrameCounter,uFrameCounter+1.)*uvec2(gl_FragCoord);// old way of generating random numbers
-    
-    randVec4=texture(tBlueNoiseTexture,(gl_FragCoord.xy+(uRandomVec2*255.))/255.);// new way of rand()
-    
-    Quad light=quads[5];
-    
-    //每个像素采样5次
-    int sampleCountPerPixel=5;
-    
-    vec3 accumCol=vec3(0);
-    vec3 mask=vec3(1);
-    vec3 n,nl,nextOrigin;
-    vec3 dirToLight;
-    
-    //记录光线的弹射次数，第一次用于采样直接光
-    int diffuseCount=0;
-    
-    vec2 pixelOffset=vec2(tentFilter(rng()),tentFilter(rng()));
-    
-    //射线的起点
-    vec2 pixelPos=((gl_FragCoord.xy+pixelOffset)/uResolution)*2.-1.;
-    
-    //射线的方向
-    vec3 rayDir=normalize(pixelPos.x*camRight*uULen+pixelPos.y*camUp*uVLen+camForward);
-    
-    //生成射线
-    Ray r=Ray(cameraPosition,normalize(rayDir));
-    
-    Intersection intersec;
-    
-    bool bounceIsSpecular=true;
-    bool sampleLight=false;
-    bool createCausticRay=false;
-    
-    float t;
-    vec3 x;
-    float weight,p;
-    
-    //这里光线最大弹射5次
-    for(int bounces=0;bounces<5;bounces++){
-        //场景相交测试
-        t=RayIntersect(r,intersec);
-        
-        //如果与场景中的对象均没有相交
-        if(t==INFINITY)
-        break;
-        
-        //如果相交的对象是灯光，则结束此次弹射
-        if(intersec.type==LIGHT){
-            accumCol=mask*intersec.emission;
-            
-            break;
-        }
-        
-        accumCol=intersec.color;
-        break;
-        
-    }// end if (intersec.type == DIFF)
-    
-    return max(vec3(0),accumCol);
-    
-}
-
-void main(void){
-    
     //构造场景中的mesh
     InitSceneMesh();
     
@@ -385,10 +308,42 @@ void main(void){
     payload.seed=tea(tea(int(gl_FragCoord.x),int(gl_FragCoord.y)),int(uSampleCounter));
     
     vec3 pixelColor=vec3(1.,0.,0.);
+    //每个像素采样点的权重
     float weightSum=0.;
     
-    //根据射线计算辐照度颜色
-    // pixelColor=CalculateRadiance(payload);
+    for(int i=0;i<sampleCountPerPixel;i++){
+        //在这一个像素内的偏移量
+        vec2 pixelOffset=vec2(tentFilter(rng()),tentFilter(rng()));
+        //射线的起点
+        vec2 pixelPos=((gl_FragCoord.xy+pixelOffset)/uResolution)*2.-1.;
+        
+        //射线的方向
+        vec3 rayDir=normalize(pixelPos.x*camRight*uULen+pixelPos.y*camUp*uVLen+camForward);
+        
+        vec3 wi=rayDir.xyz;
+        
+        //生成射线(起点，方向)
+        Ray ray=Ray(cameraPosition,normalize(rayDir),uNearFar.x,uNearFar.y);
+        
+        //初始化颜色
+        payload.radiance=vec3(0.,0.,0.);
+        //渲染方程项
+        payload.throughput=vec3(1.,1.,1.);
+        //散射方向
+        payload.scatterDirection=vec3(0.,0.,0.);
+        
+        //当前光线是否从相机射出(如果是则进行直接光源采样)
+        bool isCameraRay=true;
+        
+        //当前光线是否从镜面材质的对象向射出(镜面材质的对象不进行直接光源采样)
+        payload.isRayBounceFromSpecularReflectionMaterial=false;
+        
+        // while(true){
+            bool isContinueBounce=_traceRay(
+            ray,payload,isCameraRay);
+        // }
+        
+    }
     
     //拿到上一帧的结果
     vec3 previousColor=texelFetch(tPreviousTexture,ivec2(gl_FragCoord.xy),0).rgb;
